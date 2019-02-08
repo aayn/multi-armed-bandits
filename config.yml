@@ -1,0 +1,11 @@
+# Parameters for the k-armed bandit
+bandit:
+  # Number of arms
+  n_arms: 10
+
+# Parameters each arm of the bandit
+arm:
+  # Mean of the distribution for action values of an arm
+  mean: 0
+  # Variance of the distribution for action values of an arm
+  var: 1
