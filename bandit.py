@@ -1,7 +1,7 @@
 import yaml as y
 from pathlib import Path
 import numpy as np
-
+from utils import custom_violinplot
 
 class Bandit:
     def __init__(self, config_path=Path('config.yml')):
@@ -16,7 +16,7 @@ class Bandit:
     
     @property
     def n_arms(self):
-        return self._n_arms()
+        return self._n_arms
     
     def _make_arms(self):
         self._arms = [Arm() for _ in range(self.n_arms)]
@@ -26,7 +26,11 @@ class Bandit:
 
         a: action/arm selected.
         """
-        return self._arms[a - 1]()
+        return self._arms[a]()
+    
+    def plot_reward_dist(self):
+        "Plot reward distribution for each action."
+        custom_violinplot(self)
 
 
 class Arm:
@@ -53,9 +57,7 @@ if __name__ == '__main__':
     print(a._qstar)
     print(type(a()))
     print(a())
-    arms = [Arm() for _ in range(10)]
-
-    for a in arms:
-        print(a.qstar)
+    bandit = Bandit()
+    bandit.plot_reward_dist()
 
         
