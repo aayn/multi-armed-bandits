@@ -1,3 +1,10 @@
+# Runtime paramters
+run:
+  # Number of runs
+  runs: 2000
+  # Num of steps each run
+  steps: 1000
+
 # Parameters for the k-armed bandit
 bandit:
   # Number of arms
