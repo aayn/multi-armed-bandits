@@ -1,1 +1,2 @@
-# multi-armed-bandits
+# Multi-armed Bandits: 10-armed Testbed
+

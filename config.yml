@@ -16,3 +16,7 @@ arm:
   mean: 0
   # Variance of the distribution for action values of an arm
   var: 1
+  # Non-stationary mean. The action values change by the every step
+  ns_mean: 0
+  # Non-stationary variance
+  ns_var: 0.01

@@ -40,9 +40,11 @@ def average_reward(storages):
     storages: List of Storage objects.
     """
     plt.figure(figsize=(10, 20))
-    for storage in storages:
-        avg_rewards = np.average(storage.all_rewards, axis=0)
-        plt.plot(avg_rewards, label=f'eps = {storage.eps:.2f}')
+    for st in storages:
+        avg_rewards = np.average(st.all_rewards, axis=0)
+        params = '; '.join(f'{p} = {v}' for p, v in st.alg_parameters.items())
+        label = f'{st.alg_name}; {params}'
+        plt.plot(avg_rewards, label=label)
     plt.xlabel('Steps')
     plt.ylabel('Average Reward')
     plt.legend()
@@ -51,15 +53,10 @@ def average_reward(storages):
 
 def optim_action(storages):
     plt.figure(figsize=(10, 20))
-    for st in storages:
-
-        print(st.all_actions[1999,:])
-        print(st.optim_actions[1998])
+    for i, st in enumerate(storages):
 
         t = (st.all_actions == st.optim_actions.reshape(2000, -1))
         num_correct = np.sum(t, axis=0)
-        print(num_correct)
-        print(num_correct.shape)
         percent_correct = 100.0 * (num_correct / 2000.0)
 
         plt.plot(percent_correct, label=f'eps = {st.eps:.2f}')
@@ -71,5 +68,7 @@ def optim_action(storages):
 
 
 if __name__ == '__main__':
-    # average_reward([Storage('samp_avg_0.05')])
-    optim_action([Storage('o_savg_0'), Storage('o_savg_0.01'), Storage('o_savg_0.1')])
+    s1 = Storage('nonassoc_osa')
+    s2 = Storage('nonassoc_ucb')
+    s3 = Storage('nonassoc_gb')
+    average_reward([s1, s2, s3])
