@@ -1,4 +1,5 @@
 import pickle
+import yaml as y
 import numpy as np
 from pathlib import Path
 
@@ -7,6 +8,10 @@ class Storage:
     "Standard storage format used for this project."
 
     def __init__(self, name, algorithm=None):
+        with open('config.yml') as cfile: 
+            run_config = y.load(cfile)['run']
+        runs, steps = run_config['runs'], run_config['steps']
+
         self._name = name
         self._path = Path(f'data/{name}/')
         if algorithm is None:
@@ -14,23 +19,19 @@ class Storage:
         else:
             if not self._path.exists():
                 self._path.mkdir()
-            self._rewards_sum = []
-            self._all_actions = []
-            self._optim_actions = []
+
+            self._rewards_sum = np.zeros(steps)
+            self._optim_action_count = np.zeros(steps)
             self._alg_name = algorithm.name
             self._alg_params = algorithm.parameters
     
     @property
-    def all_rewards(self):
-        return np.array(self._all_rewards)
+    def rewards_sum(self):
+        return self._rewards_sum
     
     @property
-    def all_actions(self):
-        return np.array(self._all_actions)
-    
-    @property
-    def optim_actions(self):
-        return np.array(self._optim_actions)
+    def optim_action_count(self):
+        return self._optim_action_count
     
     @property
     def path(self):
@@ -54,17 +55,19 @@ class Storage:
             every step, pass an array. In the stationary case, a single
             number is valid too.
         """
-        self._all_rewards.append(rewards)
-        self._all_actions.append(actions)
-        self._optim_actions.append(optim_actions)
+        self._rewards_sum += rewards
+        if isinstance(optim_actions, int):
+            a, o = np.array(actions), optim_actions
+        else:
+            a, o = np.array(actions), np.array(optim_actions)
+        self._optim_action_count += (a == o)
     
     def save(self):
         with open(f'data/{self._name}/storage.pkl', 'wb') as sfile:
-            pickle.dump([self._all_rewards, self._all_actions,
-                         self._optim_actions, self._alg_name,
-                         self._alg_params], sfile)
+            pickle.dump([self._rewards_sum, self._optim_action_count,
+                         self._alg_name, self._alg_params], sfile)
     
     def load(self):
         with open(f'data/{self._name}/storage.pkl', 'rb') as sfile:
-            self._all_rewards, self._all_actions, self._optim_actions, self._alg_name, self._alg_params = pickle.load(sfile)
+            self._rewards_sum, self._optim_action_count, self._alg_name, self._alg_params = pickle.load(sfile)
 

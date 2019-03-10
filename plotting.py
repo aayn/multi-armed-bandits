@@ -1,8 +1,10 @@
 import matplotlib.pyplot as plt
+plt.rcParams.update({'font.size': 15})
 from matplotlib import rc
 import numpy as np
 from collections import defaultdict
 import pickle
+import yaml as y
 from storage import Storage
 
 
@@ -39,14 +41,19 @@ def average_reward(storages, savepath=None):
     
     storages: List of Storage objects.
     """
-    plt.figure(figsize=(10, 20))
+    with open('config.yml') as cfile: 
+            run_config = y.load(cfile)['run']
+    runs, steps = run_config['runs'], run_config['steps']
+
+    plt.figure(figsize=(20, 20))
     for st in storages:
-        avg_rewards = np.average(st.all_rewards, axis=0)
+        avg_rewards = st.rewards_sum / runs
         params = '; '.join(f'{p} = {v}' for p, v in st.alg_parameters.items())
         label = f'{st.alg_name}; {params}'
         plt.plot(avg_rewards, label=label)
     plt.xlabel('Steps')
     plt.ylabel('Average Reward')
+
     plt.legend()
     # plt.show()
     if savepath is not None:
@@ -54,12 +61,14 @@ def average_reward(storages, savepath=None):
     plt.close()
 
 def optim_action(storages, savepath=None):
-    plt.figure(figsize=(10, 20))
+    with open('config.yml') as cfile: 
+            run_config = y.load(cfile)['run']
+    runs, steps = run_config['runs'], run_config['steps']
+
+    plt.figure(figsize=(20, 20))
     for st in storages:
-        runs, steps = st.all_actions.shape
-        t = (st.all_actions == st.optim_actions.reshape(runs, -1))
-        num_correct = np.sum(t, axis=0)
-        percent_correct = 100.0 * (num_correct / runs)
+        oc = st.optim_action_count
+        percent_correct = 100.0 * (oc / runs)
         
         params = '; '.join(f'{p} = {v}' for p, v in st.alg_parameters.items())
         label = f'{st.alg_name}; {params}'

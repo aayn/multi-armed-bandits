@@ -8,7 +8,7 @@ import algorithms as alg
 from storage import Storage
 
 
-def run(name, algorithm, non_stationary=False, plots=[], config_path=Path('config.yml')):
+def run(name, algorithm, non_stationary=False, plots=[]):
     """Runs an algorithm with the specified paramters.
     
     name: The plots and other related data of a 'run' is stored under
@@ -16,15 +16,14 @@ def run(name, algorithm, non_stationary=False, plots=[], config_path=Path('confi
     algorithm: Instance of an algorithm from `algorithms.py`.
     non_stationary: Whether to run the stationary or non_stationary test bench.
     plots: List of plots to save from `plotting.py`.
-    config_path: A Path object to the `config.yml` file.
     """
-    with config_path.open() as cfile: 
+    with open('config.yml') as cfile: 
         config = y.load(cfile)['run']
 
     storage = Storage(name, algorithm)
 
     for run in range(config['runs']):
-        bandit = Bandit(non_stationary, config_path=config_path)
+        bandit = Bandit(non_stationary)
         print(f'Run number {run + 1}.')
 
         optim_action = np.argmax([bandit.q_star(a) for a in range(10)])

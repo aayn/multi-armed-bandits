@@ -1,16 +1,15 @@
 import yaml as y
-from pathlib import Path
 import numpy as np
 from plotting import custom_violinplot
 
 class Bandit:
-    def __init__(self, non_stationary=False, config_path=Path('config.yml')):
+    def __init__(self, non_stationary=False):
         """Initializes a k-armed bandit.
 
         Take a look at `config.yml` for different parameters of the
         bandit.
         """
-        with config_path.open() as cfile: 
+        with open('config.yml') as cfile: 
             config = y.load(cfile)['bandit']
 
         self._n_arms = config['n_arms']
@@ -39,14 +38,16 @@ class Bandit:
 
 
 class Arm:
-    def __init__(self, non_stationary=False, config_path=Path('config.yml')):
+    def __init__(self, non_stationary=False):
         """Initializes a single bandit arm.
 
         The values of mean and the variance for the distribution
         of the action corresponding to the arm can be set in
         `config.yml`.
         """
-        config = y.load(config_path.open())['arm']
+        with open('config.yml') as cfile: 
+            config = y.load(cfile)['arm']
+
         self._mean = config['mean']
         self._var = config['var']
         if non_stationary:
