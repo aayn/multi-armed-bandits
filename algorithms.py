@@ -1,36 +1,67 @@
+from collections import OrderedDict
 import numpy as np
 from utils import softmax
 
-class BaseAlgorithm:
-    def __init__(self, n_actions):
+
+class ActionValueEstimator:
+    def __init__(self, n_actions=10, eps=None, alpha=None, Q1=None):
+        """Action-value estimation using the epsilon-greedy method.
+
+        n_actions: Number of actions that can be taken.
+        eps: Epsilon paramter for epsilon-greedy method.
+        alpha: constant per-time-step parameter; if 'None' then sample
+            averaging is done.
+        Q1: Initial Q-value estimate
+        """
         self._n_actions = n_actions
-        # Action-value estimates
-        self._Q = np.array([0.0 for _ in range(n_actions)])
-        self._name = 'base'
-    
-    @property
-    def name(self):
-        return self._name
-    
+        self._eps = eps
+        self._alpha = alpha
+        self._Q1 = Q1
+        self._name = 'estimate'
+        
+        self._parameters = OrderedDict()
+
+        if eps is not None:
+            self._name += '_eps_greedy'
+            self._parameters['eps'] = self._eps
+        if alpha is not None:
+            self._name += '_const'
+            self._parameters['alpha'] = self._alpha
+        if Q1 is not None:
+            self._name += '_q1'
+            self._parameters['Q1'] = self._Q1
+        else:
+            self._Q1 = 0.0
+        self.reset()
+
     def reset(self):
-        raise NotImplementedError
+        # Action-value estimates
+        self._Q = np.array([self._Q1 for _ in range(self._n_actions)])
+        # Number of times an action is taken
+        self._N = np.array([0 for _ in range(self._n_actions)])
     
-    def update(self):
+    def update(self, action, reward, step):
+        self._N[action] +=1
+        if self._alpha is None:
+            self._Q[action] += (reward - self._Q[action]) / self._N[action]
+        else:
+            self._Q[action] += self._alpha * (reward - self._Q[action])
+    
+    def act(self, step):
         raise NotImplementedError
     
     @property
     def parameters(self):
-        raise NotImplementedError
+        return self._parameters
     
-    def act(self):
-        raise NotImplementedError
+    @property
+    def name(self):
+        return self._name
 
-class EpsilonGreedy(BaseAlgorithm):
-    def __init__(self, n_actions, eps=0.0):
-        super().__init__(n_actions)
-        self._eps = eps
-        self._name = 'epsilon_greedy'    
-    
+class EpsilonGreedy(ActionValueEstimator):
+    def __init__(self, n_actions=10, eps=None, alpha=None, Q1=None):
+        super().__init__(n_actions, eps, alpha, Q1)
+
     def act(self, step):
         "Choose action for the next time step."
         action = None
@@ -41,129 +72,34 @@ class EpsilonGreedy(BaseAlgorithm):
         return action
 
 
-class SampleAverage(EpsilonGreedy):
-    def __init__(self, n_actions, eps=0.0):
-        super().__init__(n_actions, eps)
-        # Reward history
-        self._r_hist = np.array([])
-        # Action history        
-        self._a_hist = np.array([], dtype=np.int)
-        self._name = 'sample_average'
-    
-    def reset(self):
-        self._Q = np.array([0.0 for _ in range(self._n_actions)])
-        self._r_hist = np.array([])
-        self._a_hist = np.array([], dtype=np.int)
-    
-    def update(self, action, reward, step):
-        "Update action-value estimates using sample-averaging."
-        for a in range(self._n_actions):
-            predicate = (self._a_hist == a)
-            psum = np.sum(predicate)
-            if psum > 0:
-                self._Q[a] = np.sum(self._r_hist[predicate]) / psum
-
-        self._r_hist = np.append(self._r_hist, reward)
-        self._a_hist = np.append(self._a_hist, action)
-
-    @property
-    def parameters(self):
-        return {'eps': self._eps}
-
-
-class OnlineSampleAverage(EpsilonGreedy):
-    def __init__(self, n_actions, eps=0.0):
-        super().__init__(n_actions, eps)
-        # No. of times an action has been taken
-        self._N = np.array([0 for _ in range(n_actions)])
-        self._name = 'online_sample_average'
-    
-    def reset(self):
-        self._Q = np.array([0.0 for _ in range(self._n_actions)])
-        self._N = np.array([0 for _ in range(self._n_actions)])
-
-    def update(self, action, reward, step):
-        self._N[action] +=1
-        self._Q[action] += (reward - self._Q[action]) / self._N[action]
-
-    @property
-    def parameters(self):
-        return {'eps': self._eps}
-
-
-class ConstantStepAverage(OnlineSampleAverage):
-    def __init__(self, n_actions, eps=0.0, alpha=0.1):
-        super().__init__(n_actions, eps)
-        self._alpha = alpha
-        self._name = 'constant_step_average'
-    
-    def update(self, action, reward, step):
-        self._Q[action] += self._alpha * (reward - self._Q[action])
-
-    @property
-    def parameters(self):
-        return {'eps': self._eps, 'alpha': self._alpha}
-
-
-class OptimisticInitial(OnlineSampleAverage):
-    def __init__(self, n_actions, eps=0.0, Q1=0.0):
-        super(n_actions, eps)
-        self._Q1 = Q1
-        self._Q = np.array([Q1 for _ in range(n_actions)])
-        self._name = 'optimistic_initial'
-    
-    def reset(self):
-        self._Q = np.array([self._Q1 for _ in range(self._n_actions)])
-        self._N = np.array([0 for _ in range(self._n_actions)])
-
-    @property
-    def parameters(self):
-        return {'eps': self._eps, 'Q1': self._Q1}
-
-
-class UCB(BaseAlgorithm):
-    def __init__(self, n_actions, c):
-        super().__init__(n_actions)
+class UCB(ActionValueEstimator):
+    def __init__(self, c, n_actions=10, alpha=None, Q1=None):
+        super().__init__(n_actions, None, alpha, Q1)
         self._c = c
+        self._parameters['c'] = c
         self._name = 'ucb'
-        # No. of times an action has been taken
-        self._N = np.array([0 for _ in range(n_actions)])
-
-    def reset(self):
-        self._Q = np.array([0.0 for _ in range(self._n_actions)])
-        self._N = np.array([0 for _ in range(self._n_actions)])
-    
-    def update(self, action, reward, step):
-        self._N[action] +=1
-        self._Q[action] += (reward - self._Q[action]) / self._N[action]
     
     def act(self, step):
         action = np.argmax(self._Q + self._c * np.sqrt(np.log(step) / (self._N + 1e-6)))
         return action
-    
-    @property
-    def parameters(self):
-        return {'c': self._c}
 
 
-class GradientBandit(BaseAlgorithm):
-    def __init__(self, n_actions, alpha=0.1):
-        super().__init__(n_actions)
+class GradientBandit:
+    def __init__(self, n_actions=10, alpha=0.1):
+        self._n_actions = n_actions
         self._alpha = alpha
         self._name = 'gradient_bandit'
-        # Action preference
-        self._H = np.array([0.0 for _ in range(self._n_actions)])
-        # Baseline reward
-        self._R = 0.0
+        self.reset()
 
     def _pi(self):
         return softmax(self._H)
     
     def reset(self):
+        # Action preference
         self._H = np.array([0.0 for _ in range(self._n_actions)])
+        # Baseline reward
         self._R = 0.0
         
-    
     def update(self, action, reward, step):
         H_next = self._H
         # Looping over actions is too slow; this is faster
@@ -179,3 +115,7 @@ class GradientBandit(BaseAlgorithm):
     @property
     def parameters(self):
         return {'alpha': self._alpha}
+    
+    @property
+    def name(self):
+        return self._name

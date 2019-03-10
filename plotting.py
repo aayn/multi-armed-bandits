@@ -34,7 +34,7 @@ def custom_violinplot(bandit):
     plt.close()
 
 
-def average_reward(storages):
+def average_reward(storages, savepath=None):
     """Plot average reward vs. time steps given Storage objects of algorithms.
     
     storages: List of Storage objects.
@@ -48,27 +48,35 @@ def average_reward(storages):
     plt.xlabel('Steps')
     plt.ylabel('Average Reward')
     plt.legend()
-    plt.show()
+    # plt.show()
+    if savepath is not None:
+        plt.savefig(savepath)
     plt.close()
 
-def optim_action(storages):
+def optim_action(storages, savepath=None):
     plt.figure(figsize=(10, 20))
-    for i, st in enumerate(storages):
-
-        t = (st.all_actions == st.optim_actions.reshape(2000, -1))
+    for st in storages:
+        runs, steps = st.all_actions.shape
+        t = (st.all_actions == st.optim_actions.reshape(runs, -1))
         num_correct = np.sum(t, axis=0)
-        percent_correct = 100.0 * (num_correct / 2000.0)
-
-        plt.plot(percent_correct, label=f'eps = {st.eps:.2f}')
+        percent_correct = 100.0 * (num_correct / runs)
+        
+        params = '; '.join(f'{p} = {v}' for p, v in st.alg_parameters.items())
+        label = f'{st.alg_name}; {params}'
+        plt.plot(percent_correct, label=label)
     plt.xlabel('Steps')
     plt.ylabel('% Optimal Action')
     plt.legend()
-    plt.show()
+    # plt.show()
+    if savepath is not None:
+        plt.savefig(savepath)
     plt.close()
 
 
 if __name__ == '__main__':
-    s1 = Storage('nonassoc_osa')
-    s2 = Storage('nonassoc_ucb')
-    s3 = Storage('nonassoc_gb')
-    average_reward([s1, s2, s3])
+    s1 = Storage('eps_greedy')
+    s2 = Storage('eps_greedy_const')
+    s3 = Storage('eps_greedy_optimistic')
+    s4 = Storage('ucb')
+    s5 = Storage('gb')
+    average_reward([s1, s2, s3, s4, s5])

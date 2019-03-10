@@ -12,11 +12,9 @@ class Storage:
         if algorithm is None:
             self.load()
         else:
-            try:
+            if not self._path.exists():
                 self._path.mkdir()
-            except FileExistsError:
-                pass
-            self._all_rewards = []
+            self._rewards_sum = []
             self._all_actions = []
             self._optim_actions = []
             self._alg_name = algorithm.name
