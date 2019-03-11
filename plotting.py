@@ -5,10 +5,14 @@ import numpy as np
 from collections import defaultdict
 import pickle
 import yaml as y
-from storage import Storage
+
 
 
 def custom_violinplot(bandit):
+    """Plots the reward distribution for a given bandit.
+
+    bandit: An instance of the Bandit class.
+    """
     n_samples = 10000
     dd = defaultdict(lambda: [])
     for _ in range(n_samples):
@@ -37,70 +41,76 @@ def custom_violinplot(bandit):
 
 
 def average_reward(avg_rewards, labels, savepath=None):
-    """Plot average reward vs. time steps given Storage objects of algorithms.
+    """Plot average reward vs. time steps for algorithms.
     
-    storages: List of Storage objects.
+    avg_rewards: List of average rewards per step (numpy array).
+    labels: List of strings for labelling plots.
+    savepath: A string; save location for the graph, if any.
     """
-    with open('config.yml') as cfile: 
-            run_config = y.load(cfile)['run']
-    runs, steps = run_config['runs'], run_config['steps']
-
     plt.figure(figsize=(20, 20))
-    for st in storages:
-        avg_rewards = st.rewards_sum / runs
-        params = '; '.join(f'{p} = {v}' for p, v in st.alg_parameters.items())
-        label = f'{st.alg_name}; {params}'
-        plt.plot(avg_rewards, label=label)
+
+    for ar, label in zip(avg_rewards, labels):
+        plt.plot(ar, label=label)
     plt.xlabel('Steps')
     plt.ylabel('Average Reward')
 
     plt.legend()
-    # plt.show()
+    
     if savepath is not None:
         plt.savefig(savepath)
+    else:
+        plt.show()
     plt.close()
 
-def optim_action(storages, savepath=None):
-    with open('config.yml') as cfile: 
-            run_config = y.load(cfile)['run']
-    runs, steps = run_config['runs'], run_config['steps']
+def optim_action(oa_percents, labels, savepath=None):
+    """Plot % optimal action vs. time steps for algorithms.
 
+    oa_percents: List of percent of times optimal action is taken per
+    step (numpy array).
+    labels: List of strings for labelling plots.
+    savepath: A string; save location for the graph, if any.
+    """
     plt.figure(figsize=(20, 20))
-    for st in storages:
-        oc = st.optim_action_count
-        percent_correct = 100.0 * (oc / runs)
-        
-        params = '; '.join(f'{p} = {v}' for p, v in st.alg_parameters.items())
-        label = f'{st.alg_name}; {params}'
-        plt.plot(percent_correct, label=label)
+
+    for oap, label in zip(oa_percents, labels):
+        plt.plot(oap, label=label)
     plt.xlabel('Steps')
     plt.ylabel('% Optimal Action')
     plt.legend()
-    # plt.show()
     if savepath is not None:
         plt.savefig(savepath)
+    else:
+        plt.show()
     plt.close()
 
 
-def parameter_study(avg_rewards, pvalues):
-    # print(vals)
-    # x = [(1/128) * pow(2, i) for i in range(7)]
+def parameter_study(all_vals, all_pvals, labels, savepath=None):
+    """Plot average reward vs. parameter value at which that reward
+    is received.
+
+    all_vals: List of list of average rewards. Each inner list contains
+    the average reward for all the desired parameter values for a given
+    algorithm. Each inner list corresponds to a different algorithm.
+    all_pvals: List of list of parameter values. These are the
+    corresponding parameter values at which the average rewards are
+    obtained.
+    labels: List of strings for labelling plots.
+    savepath: A string; save location fpr the graph, if any.
+    """
     plt.figure(figsize=(20, 20))
-    plt.plot(pvalues, avg_rewards)
-    plt.xlabel('Steps')
-    plt.ylabel('% Optimal Action')
-    plt.xscale('log', basex=2)
-    # plt.legend()
-    plt.show()
-    # if savepath is not None:
-        # plt.savefig(savepath)
-    
-    plt.close()
 
-if __name__ == '__main__':
-    s1 = Storage('eps_greedy')
-    s2 = Storage('eps_greedy_const')
-    s3 = Storage('eps_greedy_optimistic')
-    s4 = Storage('ucb')
-    s5 = Storage('gb')
-    average_reward([s1, s2, s3, s4, s5])
+    for vals, pvals, label in zip(all_vals, all_pvals, labels):
+        plt.plot(pvals, vals, label=label, linewidth=5)
+    
+    plt.ylabel('Average reward over last 100,000 steps')
+    plt.xlabel('Parameter value')
+    plt.xscale('log', basex=2)
+    xticks = [pow(2, i) for i in range(-7, 3)]
+    plt.xticks(xticks)
+    plt.legend()
+    if savepath is not None:
+        plt.savefig(savepath)
+    else:
+        plt.show()
+
+    plt.close()
