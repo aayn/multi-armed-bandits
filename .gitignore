@@ -7,7 +7,7 @@ __pycache__/
 *.so
 
 # Distribution / packaging
-data/
+data/all_2.11.pkl
 .Python
 build/
 develop-eggs/
