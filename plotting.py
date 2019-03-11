@@ -82,6 +82,21 @@ def optim_action(storages, savepath=None):
     plt.close()
 
 
+def parameter_study(avg_rewards, pvalues):
+    # print(vals)
+    # x = [(1/128) * pow(2, i) for i in range(7)]
+    plt.figure(figsize=(20, 20))
+    plt.plot(pvalues, avg_rewards)
+    plt.xlabel('Steps')
+    plt.ylabel('% Optimal Action')
+    plt.xscale('log', basex=2)
+    # plt.legend()
+    plt.show()
+    # if savepath is not None:
+        # plt.savefig(savepath)
+    
+    plt.close()
+
 if __name__ == '__main__':
     s1 = Storage('eps_greedy')
     s2 = Storage('eps_greedy_const')

@@ -1,7 +1,7 @@
 "Reinforcement Learning: An Introduction Chapter 2 Exercises."
 
 import algorithms as alg
-from run import multi_run
+from run import multi_run, parameter_search
 import plotting as plot
 from storage import Storage
 
@@ -20,8 +20,8 @@ def ex_2_5():
     inc = alg.EpsilonGreedy(eps=0.1)
     const = alg.EpsilonGreedy(eps=0.1, alpha=0.1)
 
-    multi_run([('incremental_2.5', inc, True),
-               ('const-step_2.5', const, True)])
+    # multi_run([('incremental_2.5', inc, True),
+            #    ('const-step_2.5', const, True)])
 
     s1 = Storage('incremental_2.5')
     s2 = Storage('const-step_2.5')
@@ -30,5 +30,14 @@ def ex_2_5():
     plot.optim_action([s1, s2], 'data/exercise_plots/2.5_optact.png')
 
 
+def ex_2_11():
+    a1 = alg.EpsilonGreedy(eps=0.1)
+
+    avg_rewards, pvalues = parameter_search(alg.EpsilonGreedy, 'eps', 1/128, 1/2, lambda x: 2 * x)
+    # avg_rewards, pvalues = parameter_search(alg.UCB, 'c', 1/16, 4, lambda x: x * 2)    
+    plot.parameter_study(avg_rewards, pvalues)
+
+
 if __name__ == '__main__':
-    ex_2_5()
+    # ex_2_5()
+    ex_2_11()

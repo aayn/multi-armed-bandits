@@ -64,6 +64,26 @@ def multi_run(run_tuples):
         proc.join()
 
 
+def parameter_search(Algorithm, parameter, start, end, increment_function):
+    values = []
+    algs = []
+    while start <= end:
+        values.append(start)
+        a = Algorithm(eps=0.1)
+        a.edit_parameter(parameter, start)
+        a.reset()
+        algs.append(a)
+        start = increment_function(start)
+    optim_procs = mp.cpu_count() - 1
+    
+    # for i in range(0, len(algs), optim_procs):
+    #     run_tuples = list(map(lambda a, v: (f'{a.name}_{v}', a, True), algs[i:i+optim_procs], values[i:i+optim_procs]))
+    #     multi_run(run_tuples)
+    avg_rewards = list(map(lambda a, v: np.average(Storage(f'{a.name}_{v}').rewards_sum / 1000),
+                           algs, values))
+    return avg_rewards, values
+
+
 def plot(name, plots=[]):
     """Draw plots for an already run algorithm.
     
@@ -73,10 +93,13 @@ def plot(name, plots=[]):
 
 if __name__ == '__main__':
     a1 = alg.EpsilonGreedy(eps=0.1)
-    a2 = alg.EpsilonGreedy(eps=0.1, alpha=0.1)
-    a3 = alg.EpsilonGreedy(eps=0.1, Q1=5.0)
-    a4 = alg.UCB(c=2, alpha=0.1)
-    a5 = alg.GradientBandit(alpha=0.1)
+    # a2 = alg.EpsilonGreedy(eps=0.1, alpha=0.1)
+    # a3 = alg.EpsilonGreedy(eps=0.1, Q1=5.0)
+    # a4 = alg.UCB(c=2, alpha=0.1)
+    # a5 = alg.GradientBandit(alpha=0.1)
 
-    multi_run([('eps_greedy', a1, True), ('eps_greedy_const', a2, True), ('eps_greedy_optimistic', a3, True),
-               ('ucb', a4, True), ('gb', a5, True)])
+    # multi_run([('eps_greedy', a1, True), ('eps_greedy_const', a2, True), ('eps_greedy_optimistic', a3, True),
+    #            ('ucb', a4, True), ('gb', a5, True)])
+    # ar = parameter_search(alg.EpsilonGreedy, 'eps', 1/128, 1/2, lambda x: x * 2)
+    ar = parameter_search(alg.UCB, 'c', 1/16, 4, lambda x: x * 2)
+    # print(ar)

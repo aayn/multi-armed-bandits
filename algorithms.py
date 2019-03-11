@@ -50,6 +50,16 @@ class ActionValueEstimator:
     def act(self, step):
         raise NotImplementedError
     
+    def edit_parameter(self, parameter, value):
+        if parameter == 'eps':
+            self._eps = value
+        elif parameter == 'alpha':
+            self._alpha = value
+        elif parameter == 'Q1':
+            self._Q1 = value
+        
+        self._parameters[parameter] = value
+    
     @property
     def parameters(self):
         return self._parameters
@@ -73,7 +83,7 @@ class EpsilonGreedy(ActionValueEstimator):
 
 
 class UCB(ActionValueEstimator):
-    def __init__(self, c, n_actions=10, alpha=None, Q1=None):
+    def __init__(self, c=2, n_actions=10, alpha=None, Q1=None):
         super().__init__(n_actions, None, alpha, Q1)
         self._c = c
         self._parameters['c'] = c
@@ -82,6 +92,11 @@ class UCB(ActionValueEstimator):
     def act(self, step):
         action = np.argmax(self._Q + self._c * np.sqrt(np.log(step) / (self._N + 1e-6)))
         return action
+    
+    def edit_parameter(self, parameter, value):
+        super().edit_parameter(parameter, value)
+        if parameter == 'c':
+            self._c = value
 
 
 class GradientBandit:
@@ -111,6 +126,10 @@ class GradientBandit:
     
     def act(self, step):
         return np.random.choice(range(self._n_actions), p=self._pi())
+    
+    def edit_parameter(self, parameter, value):
+        if parameter == 'alpha':
+            self._alpha = value
     
     @property
     def parameters(self):
