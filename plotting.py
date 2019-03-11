@@ -36,7 +36,7 @@ def custom_violinplot(bandit):
     plt.close()
 
 
-def average_reward(storages, savepath=None):
+def average_reward(avg_rewards, labels, savepath=None):
     """Plot average reward vs. time steps given Storage objects of algorithms.
     
     storages: List of Storage objects.

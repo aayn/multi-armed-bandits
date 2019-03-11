@@ -8,44 +8,56 @@ import algorithms as alg
 from storage import Storage
 
 
-def run(name, algorithm, non_stationary=False, plots=[]):
+def run(algorithm, non_stationary=False):
     """Runs an algorithm with the specified paramters.
-    
-    name: The plots and other related data of a 'run' is stored under
-    data/<name>/.
+
     algorithm: Instance of an algorithm from `algorithms.py`.
     non_stationary: Whether to run the stationary or non_stationary test bench.
-    plots: List of plots to save from `plotting.py`.
     """
     with open('config.yml') as cfile: 
         config = y.load(cfile)['run']
+    runs, steps = config['runs'], config['steps']
 
-    storage = Storage(name, algorithm)
+    avg_rewards, optim_action_percent = np.zeros(steps), np.zeros(steps)
 
-    for run in range(config['runs']):
+    for run in range(runs):
         bandit = Bandit(non_stationary)
         print(f'Run number {run + 1}.')
 
+        # One-run rewards
+        or_rewards = []
+        # One-run actions
+        or_actions = []
         optim_action = np.argmax([bandit.q_star(a) for a in range(10)])
-        optim_action = [] if non_stationary else optim_action
-        results = {'rewards': [], 'actions': [], 'optim_action': optim_action}
+        # One-run optimal actions
+        or_optim_actions = [] if non_stationary else optim_action
 
-        for step in range(1, config['steps'] + 1):
+        for step in range(1, steps + 1):
             action = algorithm.act(step)
             reward = bandit(action)
             if non_stationary:
                 optim_action = np.argmax([bandit.q_star(a) for a in range(10)])
             algorithm.update(action, reward, step)
 
-            results['rewards'].append(reward)
-            results['actions'].append(action)
+            or_rewards.append(reward)
+            or_actions.append(action)
             if non_stationary:
-                results['optim_action'].append(optim_action)
+                or_optim_actions.append(optim_action)
         
-        storage.update(results['rewards'], results['actions'], results['optim_action'])
+        avg_rewards += or_rewards
+
+        if non_stationary:
+            a, o = np.array(or_actions), np.array(or_optim_actions)
+        else:
+            a, o = np.array(or_actions), or_optim_actions
+        optim_action_percent += (a == o)
+        
         algorithm.reset()
     
-    storage.save()
+    avg_rewards /= runs
+    optim_action_percent = (optim_action_percent / runs) * 100.0
+
+    return avg_rewards, optim_action_percent
 
 
 def multi_run(run_tuples):
@@ -54,14 +66,10 @@ def multi_run(run_tuples):
     run_tuples: List of tuples, each tuple being the arguments passed
         to one call of `run`.
     """
-    procs = []
-    for rt in run_tuples:
-        proc = mp.Process(target=run, args=rt)
-        procs.append(proc)
-        proc.start()
+    with mp.Pool(processes=(mp.cpu_count() - 1)) as pool:
+        results = pool.starmap(run, run_tuples)
+    return results
     
-    for proc in procs:
-        proc.join()
 
 
 def parameter_search(Algorithm, parameter, start, end, increment_function):
@@ -84,22 +92,15 @@ def parameter_search(Algorithm, parameter, start, end, increment_function):
     return avg_rewards, values
 
 
-def plot(name, plots=[]):
-    """Draw plots for an already run algorithm.
-    
-    name: The `name` with which the algorithm previously run.
-    plots: List of plots.
-    """
 
 if __name__ == '__main__':
     a1 = alg.EpsilonGreedy(eps=0.1)
-    # a2 = alg.EpsilonGreedy(eps=0.1, alpha=0.1)
-    # a3 = alg.EpsilonGreedy(eps=0.1, Q1=5.0)
-    # a4 = alg.UCB(c=2, alpha=0.1)
-    # a5 = alg.GradientBandit(alpha=0.1)
+    a2 = alg.EpsilonGreedy(eps=0.1, alpha=0.1)
+    a3 = alg.EpsilonGreedy(eps=0.1, Q1=5.0)
+    a4 = alg.UCB(c=2, alpha=0.1)
+    a5 = alg.GradientBandit(alpha=0.1)
 
-    # multi_run([('eps_greedy', a1, True), ('eps_greedy_const', a2, True), ('eps_greedy_optimistic', a3, True),
-    #            ('ucb', a4, True), ('gb', a5, True)])
+    multi_run([(a1, True), (a2, True), (a3, True), (a4, True), (a5, True)])
     # ar = parameter_search(alg.EpsilonGreedy, 'eps', 1/128, 1/2, lambda x: x * 2)
-    ar = parameter_search(alg.UCB, 'c', 1/16, 4, lambda x: x * 2)
+    # ar = parameter_search(alg.UCB, 'c', 1/16, 4, lambda x: x * 2)
     # print(ar)
